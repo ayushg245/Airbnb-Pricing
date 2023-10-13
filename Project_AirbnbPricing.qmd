@@ -1,0 +1,458 @@
+---
+title: "AirbnbPrice"
+format: pdf
+editor: visual
+output: FALSE
+echo: FALSE
+---
+
+```         
+tinytex::install_tinytex()
+```
+
+## Predictive Model for Airbnb Pricing in Asheville, NC
+
+#### Introduction:
+
+In this analysis, we aimed to create a predictive model for Airbnb pricing in Asheville, North Carolina. Our goal was to assist new hosts in setting competitive prices for their listings. The dataset used for this analysis contains information about Airbnb listings in Asheville.
+
+**Basic Data Information**:
+
+Sample size:\
+The dataset contains a total of 3,239 Airbnb listings in Asheville, North Carolina.\
+There are 75 columns in the dataset, each representing different attributes of the Airbnb listings.
+
+**Methods**:
+
+For this analysis, we chose to use a regression model. We selected this model because it allows us to understand how different factors, such as the number of bedrooms, bathrooms, distance to downtown, and other features, influence the listing price.
+
+**Variables Included in the Model**:
+
+1.  Bedrooms: The number of bedrooms typically affects pricing directly.
+2.  Bathrooms: The number of bathrooms can also impact pricing, adding convenience and luxury.
+3.  Distance to Downtown: Proximity to downtown can increase pricing for better accessibility.
+4.  Room_type : Entire rooms / apartments are highly priced than private rooms
+5.  Amenities (Pool , Pets_allowed ,Kitchen) : Added Amenities comes with extra pricing.
+6.  accommodates : Larger capacity listings comes with larger pricing.
+7.  Beds : Directly Affects pricing as more beds accomodates more people
+8.  Reviews(reviews_per_month, calculated_host_listings_count, review_scores_value,
+9.  number_of_reviews_l30d) : Positive and higher reviews often result in higher pricing.
+
+#### Results:
+
+1.  We observe that our pricing is significantly influenced by several factors, including numbe of bedrooms, Room_type, Bathroom, DistanceTo Downtown, the presence of amenities like a pool and a kitchen, Accomodates, Reviews_per_month, Number of reviews in the last month, availbility through out the year, minimum stay requirements.
+
+2.  Collecting the valuable data from new hosts is essential for enhancing our pricing model.
+
+3.  Our model achieves a R-Squared of 0.53.
+
+    For an apartment of room_type "Entire home/apt" that accommodates 4 with 2 Bathrooms and 2 bedrooms with 2 beds booked for 2 minimum nights and having 50 reviews with score value of 4.1
+
+    host total listings as 24, reviews per month as 50, distance to downtown as 1.1 , no pool and no pets allowed and no kitchen would give a price of \$67,73
+
+#### Conclusion:
+
+1.  Our result concludes that, with the data provided, we can understand more than half of what drives pricing in Airbnb listings. However, there's still some remaining uncertainity which could be improved.
+
+2.  Additional data taken from hosts such as recent any Nearby Attractions, or any local events or any seasonal trends can further help in improving the model.
+
+    {{< pagebreak >}}
+
+```{r}
+library(dplyr)  
+
+```
+
+```{r}
+library(tidyr) 
+```
+
+## Predictive Model for Airbnb Pricing in Asheville (For Data Science Team)
+
+#### Data Cleaning
+
+Removed columns which wont be used for modelling and any empty columns like URL, picture_url and any empty columns.\
+(listing_url,scrape_id,description,neighborhood_overview,picture_url,host_id,host_url,host_name,host_about,host_response_time,host_thumbnail_url,host_picture_url,host_neighbourhood,neighbourhood_group_cleansed, last_scraped, source, name, host_verifications, bathrooms, license, calendar_last_scraped , calendar_updated, host_has_profile_pic, host_location, neighbourhood, minimum_nights_avg_ntm, maximum_nights_avg_ntm)
+
+We observe there are 462 rows with NA values for Bedrooms , removed with median
+
+Combined Hotel Room and Private room to make into one variable called 'Entire Room'.
+
+Analyzing Bathrooms_text column and We observe that our Bathrooms is in text format and has characters. Extracted number of bathrooms from the column.
+
+Observed 6 NAs in the Bathroom Column, replaced with median. \
+
+Calculate distance from latitude and longitude in distance_to_dt column
+
+Used Amenities to check if there's presence of Pool, Kitchen and if Pets are allowed.
+
+#Checking the Price Column. Observed that it is stored in string format. Extracted Numeric digits of price and stored in separate column price_numeric.
+
+```{r}
+data = read.csv("C:\\Users\\ayush\\OneDrive\\Desktop\\AndreaLane's _StatisticalModelling\\Assignment_AirbnbPricing/listings.csv")
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+head(data, 5) #Understanding the Data using first 5 rows
+```
+
+```{r}
+colnames(data) #Taking an idea of the type of columns we have 
+```
+
+```{r}
+#removing columns which wont be used for modelling like URL, picture_url  and any empty columns.  
+df = subset(data, select = -c(listing_url,scrape_id,description,neighborhood_overview,picture_url,host_id,host_url,host_name,host_about,host_response_time,host_thumbnail_url,host_picture_url,host_neighbourhood,neighbourhood_group_cleansed, last_scraped, source, name, host_verifications, bathrooms, license, calendar_last_scraped , calendar_updated, host_has_profile_pic, host_location, neighbourhood, minimum_nights_avg_ntm, maximum_nights_avg_ntm) ) 
+```
+
+```{r}
+summary(df) #Understanding the summary of our updated dataframe 
+```
+
+```{r}
+count(df, room_type) #Helps in letting us know the room types, we see that there's uneven distribution of room types
+```
+
+```{r}
+shared_room_data = df[df$room_type == 'Shared room',]  #Since Shared room is fundamentally different from Private Room and Hotel Room, it shouldn't be combined with them. Hence, we will remove it from our input.
+```
+
+```{r}
+new_df = df[df$room_type != 'Shared room',]      #Stored the result in separate data frame new_df
+```
+
+```{r}
+head(new_df)
+```
+
+```{r}
+new_df[new_df$room_type == "Hotel room", "room_type"] <- "Entire Room"
+new_df[new_df$room_type == "Private room", "room_type"] <- "Entire Room"
+ 
+#Combined Hotel Room and Private room to make into one variable called 'Entire Room'
+```
+
+```{r}
+count(new_df, room_type)
+```
+
+```{r}
+count(new_df,bedrooms) #We observe there are 462 rows with NA values for Bedrooms
+```
+
+```{r}
+median_value <- median(new_df$bedrooms, na.rm = TRUE) 
+new_df$bedrooms[is.na(new_df$bedrooms)] <- median_value   #Replacing the NA values in bedrooms column with median values 
+```
+
+```{r}
+count(new_df,bedrooms) 
+```
+
+```{r}
+new_df <- transform(new_df,                             
+bedrooms = as.integer(bedrooms))  #Converted the column  in dbl type to integer type.
+```
+
+```{r}
+count(new_df,bathrooms_text)  #Analyzing Bathrooms_text column. We observe that our Bathrooms is in text format and has characters.
+```
+
+```{r}
+new_df <- new_df %>%   separate(bathrooms_text, into = c('Bathroom', 'Text'), sep = "(?<=\\d)\\s+(?=[A-Za-z])", remove = FALSE)  #Dividing the bathrooms_text column into two columns -> Bathroom and Text 
+```
+
+```{r}
+count(new_df, Bathroom) #Observed that Bathroom is in chr format. 
+```
+
+```{r}
+new_df$Bathroom <- as.integer(new_df$Bathroom) #Converting str Bathroom column into integer format
+```
+
+```{r}
+count(new_df, Bathroom) #Observed 6 NAs in the Bathroom Column.
+```
+
+```{r}
+median_value1 <- median(new_df$Bathroom, na.rm = TRUE) new_df$Bathroom[is.na(new_df$Bathroom)] <- median_value1 
+```
+
+```{r}
+library(geosphere) #Installing the package to calculate distance from latitude and longitude
+```
+
+```{r}
+new_df$dist_to_dt <- apply(new_df[,c("longitude","latitude")],1,function(x) distm(   c(-82.55481168521978,35.59701329976918),   x,fun=distHaversine))*0.00062137  #Calculating distance to downtown and storing into new variable dist_to_dt. 
+```
+
+```{r}
+new_df['dist_to_dt']
+```
+
+### 
+
+```{r}
+new_df$Pets_Allowed <- grepl("Pets", new_df$amenities, ignore.case = TRUE) 
+
+#Convert the logical values to TRUE/FALSE  
+```
+
+```{r}
+count(new_df, Pets_Allowed) #Observing the new column Pets_Allowed
+```
+
+```{r}
+new_df$Kitchen <- grepl("Kitchen", new_df$amenities, ignore.case = TRUE)  
+
+# Convert the logical values to TRUE/FALSE 
+```
+
+```{r}
+
+count(new_df, Kitchen) #Observing the new column of Kitchen
+```
+
+```{r}
+new_df$Pool <- grepl("Shared pool|Shared outdoor pool|Private outdoor pool|Private pool" , new_df$amenities, ignore.case = TRUE)  
+# Convert the logical values to TRUE/FALSE 
+new_df$Pool <- as.numeric(new_df$Pool)  
+
+#Using Amenities column to check if Pool is available and storing the result in a separate column of Pool as 0 or 1. We have taken all cases of type of pools present and avoided Pool table and Whirlpool in our outcome. 
+```
+
+```{r}
+count(new_df,Pool)   #Observing the new column of Pool
+```
+
+```{r}
+count(new_df, price) #Checking the Price Column. Observed that it is stored in string format.  
+```
+
+```{r}
+library(stringr) 
+new_df$price_numeric <- str_sub(new_df$price, 2) 
+#Extracted numeric digits from price and stored into price_numeric column.
+```
+
+```{r}
+typeof(new_df$price_numeric) 
+#Observed that price_numeric type is character.  
+```
+
+```{r}
+new_df$price_numeric <- as.integer(new_df$price_numeric)  
+#Converted the type to integer 
+```
+
+```{r}
+# Check for missing values in the 'price_numeric' column of 'new_df'
+any(is.na(new_df$price_numeric))
+
+
+```
+
+```{r}
+mean1 <- mean(new_df$price_numeric, na.rm = TRUE)  
+
+# Replace missing values with the calculated median new_df$price_numeric[is.na(new_df$price_numeric)] <- mean1  #Replacing the missing values in  with mean.
+```
+
+### Observing the correlation between variables : 
+
+```{r}
+df_corr <- drop_na(new_df)
+numeric_df <- new_df[sapply(df_corr, is.numeric)]
+numeric_df <- drop_na(numeric_df)
+corr <- cor(numeric_df)
+
+#Finding the correlation between variables, storing into corr variable and observing.  
+```
+
+#### We observed from the correlation that Price is correlated with 1. bedrooms 2. Bathroom 3. dist to downtown, 4. accommodates 5. Reviews_per_month 6. calculated_host_listings_count_entire_homes 7. calculated_host_listings_count 8. review_scores_value 9. number_of_reviews_l30d 10. number_of_reviews_ltm 11. Availability_365 12. minimum_nights
+
+```{r}
+new_df[is.na(new_df) | new_df=="Inf"] = NA 
+```
+
+### Understanding Interaction between our variables using Plots.
+
+```{r}
+
+
+# Load the ggplot2 package
+library(ggplot2)
+
+
+```
+
+```{r}
+ggplot(new_df, aes(x=bedrooms, y =price_numeric, col=room_type))+
+  geom_point()+
+  geom_smooth(method = "lm")
+  labs(x="Number of beds ", y="Price",col="Origin")
+  
+  #Observing the relation between price_numeric, bedrooms w.r.t room_type
+```
+
+```{r}
+ggplot(new_df, aes(x=bedrooms, y =price_numeric, col=Pets_Allowed))+   
+  geom_point()+   
+  geom_smooth(method = "lm")   
+  labs(x="Number of beds ", y="Price",col="Origin")      #Observing the relation between price_numeric, bedrooms w.r.t Pets_Allowed
+```
+
+#### We observe that Bedrooms interacts with room_type, Pets_allowed and Kitchen.
+
+```{r}
+
+library(broom)
+```
+
+### Model :
+
+1.  This problem is primarily a prediction problem. The primary objective was to build a model that generate prices based on various factors, that align with the market conditions.
+
+That being said, it is also of significant value to present reasonable interpretability of the model's outcome to the Airbnb executive. It would help the company to understand which variables play the major role in predicting the price of a property.
+
+```{r}
+pricing_model <- lm(price_numeric~bedrooms + bedrooms*room_type  + Bathroom+ dist_to_dt + bedrooms*Pool + Pets_Allowed + bedrooms*Kitchen  + accommodates + beds + reviews_per_month + calculated_host_listings_count_entire_homes + calculated_host_listings_count + review_scores_value + number_of_reviews_l30d + number_of_reviews_ltm + availability_365 +  minimum_nights,
+                     data=new_df)
+summary(pricing_model)
+
+#Modelling for MLR with out input variables 
+```
+
+```{r}
+plot(pricing_model, which=1)
+```
+
+```{r}
+plot(pricing_model)  #Realized that Q-Q Residuals plot is deviating from the line
+```
+
+##### 
+
+2.  While studying the Q-Q Residuals plot, the values were deviating a lot from the line, depicting non linearity. Hence we need to change our predictors or outcome variable.
+
+```{r}
+pricing_model1 <- lm(log(price_numeric)~bedrooms + bedrooms*room_type  + Bathroom+ dist_to_dt + bedrooms*Pool + Pets_Allowed + bedrooms*Kitchen  + accommodates + beds + reviews_per_month + calculated_host_listings_count_entire_homes + calculated_host_listings_count + review_scores_value + number_of_reviews_l30d + number_of_reviews_ltm + availability_365 +  minimum_nights,                      data=new_df) 
+summary(pricing_model1)  #Used log(y) plot to model again
+```
+
+```{r}
+coef(pricing_model1) 
+```
+
+```{r}
+plot(pricing_model1)  #Observed our QQ plot got optimized after using                                     log(price_numeric)
+```
+
+##### 
+
+3.  We observe that one data point acts as an influential Data Point. Even after looking for outliers individually, there was no 'real' outlier observed. We will try to assess the impact on model by excluding this data point.
+
+```{r}
+leveraged_data_point =new_df[1791, ] 
+#observing the 1798 data point corresponding to 1791 row 
+```
+
+```{r}
+# Remove the 1798th data point from your dataset 
+new_df_filtered <- new_df[-1791, ]  
+# Build the linear regression model again without the removed data point
+pricing_model2 <- lm(log(price_numeric) ~ bedrooms + bedrooms * room_type  + Bathroom + dist_to_dt + bedrooms * Pool + Pets_Allowed + bedrooms * Kitchen  + accommodates + beds + reviews_per_month + calculated_host_listings_count_entire_homes + calculated_host_listings_count + review_scores_value + number_of_reviews_l30d + number_of_reviews_ltm + availability_365 +  minimum_nights,                      data = new_df_filtered)  # 
+
+summary(pricing_model2) 
+```
+
+##### 3 (continued) We observe that after removing that data point, our model Adjusted R-squared improved slightly. The fact that the leverage points are no longer visible in the residuals vs. leverage plot suggests that the data point was indeed influential in the original model. By removing it, we have likely reduced the leverage of that data point, resulting in a different model fit.
+
+```{r, output = TRUE }
+plot(pricing_model2)
+```
+
+```{r}
+
+
+# Load the car package
+library(car)
+
+```
+
+```{r}
+vif_graph = vif(pricing_model2, type = 'predictor') 
+vif_graph    
+```
+
+##### Since we have an interaction between Bedrooms and Room_type, Pool and Kitchen in our model we were expecting high GVIF for the same. But we also observed very high GVIF for calculated_host_listings_count_entire_homes and calculated_host_listings_count showing they have high collinaerity. Hence we will remove the calculated_host_listings_count_entire_homes from our model.
+
+```{r}
+# Build the linear regression model again without the removed data point
+
+pricing_model3 <- lm(log(price_numeric) ~ bedrooms + bedrooms * room_type  + Bathroom + dist_to_dt + bedrooms * Pool + Pets_Allowed + bedrooms * Kitchen  + accommodates + beds + reviews_per_month + calculated_host_listings_count + review_scores_value + number_of_reviews_l30d + number_of_reviews_ltm + availability_365 +  minimum_nights,                      
+                     data = new_df_filtered)   
+#Summarize the new model 
+
+summary(pricing_model3)
+```
+
+```{r}
+vif_graph1 = vif(pricing_model3, type = 'predictor') 
+vif_graph1
+```
+
+```{r}
+# Load the 'Metrics' package if not already loaded 
+
+
+library(Metrics)   
+```
+
+```{r}
+# Obtain the predicted values using your model
+predicted_log_values <- predict(pricing_model3, newdata = new_df_filtered)
+
+# Extract the actual observed values in logged form
+observed_log_values <- log(new_df_filtered$price_numeric)
+
+complete_cases <- complete.cases(predicted_log_values, observed_log_values)
+predicted_log_values <- predicted_log_values[complete_cases]
+observed_log_values <- observed_log_values[complete_cases]
+
+# Calculate RMSE
+rmse_value <- rmse(predicted_log_values, observed_log_values)
+print(paste("RMSE:", rmse_value))
+```
+
+##### We observe that GVIF value has calculated_host_listing_count has reduced significantly now indicating that there was very high collinearity between calculated_host_listing_count and calculated_host_listings_count_entire_homes.
+
+For our case, since we had to compare various models R-squared value was an appropriate metric to assess the model. With sufficient domain understanding and comparing with the baseline RMSE metric can also be useful.
+
+```{r}
+df_test <- data.frame(
+room_type = c("Entire home/apt","Entire home/apt"),
+accommodates = c(4, 4),
+Bathroom = c(2,1),
+bedrooms =c(2,2),
+beds = c(2,2),
+minimum_nights = c(2,2),
+number_of_reviews  = c(50, 50),
+minimum_nights  =c(5, 7),
+review_scores_value  =c(4.1, 4.1),
+calculated_host_listings_count =c(24, 35),
+reviews_per_month = c(24, 10),
+dist_to_dt = c(1.2,1.1),
+Pool =c(0,1),
+Pets_Allowed =c(FALSE,TRUE),
+number_of_reviews_ltm=c(12, 10),
+number_of_reviews_l30d=c(10, 5),
+Kitchen=c(FALSE,TRUE), 
+availability_365= c(119, 250)
+)
+exp(predict(pricing_model3, df_test ))
+```
