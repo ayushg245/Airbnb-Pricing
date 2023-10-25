@@ -45,10 +45,3 @@ For this analysis, we chose to use a regression model. We selected this model be
 
 2.  Additional data taken from hosts such as recent any Nearby Attractions, or any local events or any seasonal trends can further help in improving the model.
 
-    {{< pagebreak >}}
-
-```{r}
-library(dplyr)  
-
-```
-
