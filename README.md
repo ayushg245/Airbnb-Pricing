@@ -33,11 +33,7 @@ For this analysis, we chose to use a regression model. We selected this model be
 
 2.  Collecting the valuable data from new hosts is essential for enhancing our pricing model.
 
-3.  Our model achieves a R-Squared of 0.53.
-
-    For an apartment of room_type "Entire home/apt" that accommodates 4 with 2 Bathrooms and 2 bedrooms with 2 beds booked for 2 minimum nights and having 50 reviews with score value of 4.1
-
-    host total listings as 24, reviews per month as 50, distance to downtown as 1.1 , no pool and no pets allowed and no kitchen would give a price of \$67,73
+3.  Our model achieves a R-Squared of 0.53. For an apartment of room_type "Entire home/apt" that accommodates 4 with 2 Bathrooms and 2 bedrooms with 2 beds booked for 2 minimum nights and having 50 reviews with score value of 4.1 host total listings as 24, reviews per month as 50, distance to downtown as 1.1 , no pool and no pets allowed and no kitchen would give a price of $6,773. 
 
 #### Conclusion:
 
